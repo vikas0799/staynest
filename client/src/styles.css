@@ -116,4 +116,27 @@ label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; colo
 .empty { text-align: center; padding: 60px 0; }
 .footer { text-align: center; color: var(--muted); padding: 24px; border-top: 1px solid var(--border); }
 
+/* Skeleton Loader */
+.skeleton-shimmer {
+  background: #eee;
+  background-image: linear-gradient(90deg, #eee 0px, #f5f5f5 40px, #eee 80px);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-img {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-radius: 0;
+}
+.skeleton-tag { width: 60px; height: 18px; border-radius: 999px; }
+.skeleton-rating { width: 40px; height: 16px; }
+.skeleton-title { width: 80%; height: 20px; margin-top: 4px; }
+.skeleton-location { width: 60%; height: 16px; margin-top: 4px; }
+.skeleton-price { width: 40%; height: 18px; margin-top: 8px; }
+
 /* TODO: detail-layout and search-bar break on mobile (<768px) - see "Mobile responsive" issue */
