@@ -38,9 +38,44 @@ export default function ListingForm() {
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
+  const isValidUrl = (url) => {
+    if (!url) return true;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const errors = {};
+  if (form.title && (form.title.trim().length < 10 || form.title.trim().length > 100)) {
+    errors.title = 'Title must be between 10 and 100 characters';
+  }
+  if (form.description && form.description.trim().length < 30) {
+    errors.description = 'Description must be at least 30 characters';
+  }
+  if (form.pricePerNight !== '' && (Number(form.pricePerNight) <= 0 || Number.isNaN(Number(form.pricePerNight)))) {
+    errors.pricePerNight = 'Price per night must be greater than 0';
+  }
+  if (form.imageUrl && !isValidUrl(form.imageUrl)) {
+    errors.imageUrl = 'Please enter a valid URL (http:// or https://)';
+  }
+
+  const isFormInvalid =
+    !form.title.trim() ||
+    form.title.trim().length < 10 ||
+    form.title.trim().length > 100 ||
+    !form.description.trim() ||
+    form.description.trim().length < 30 ||
+    !form.pricePerNight ||
+    Number(form.pricePerNight) <= 0 ||
+    (Boolean(form.imageUrl) && !isValidUrl(form.imageUrl));
+
   // TODO: replace the image URL field with real image upload (Cloudinary / multer).
   const submit = async (e) => {
     e.preventDefault();
+    if (isFormInvalid) return;
     setError('');
     const { title, description, type, city, state, address, imageUrl, amenities } = form;
     const payload = {
@@ -68,13 +103,22 @@ export default function ListingForm() {
   return (
     <form className="card form wide" onSubmit={submit}>
       <h1>{isEdit ? 'Edit listing' : 'Create a new listing'}</h1>
-      <input required placeholder="Title" value={form.title} onChange={set('title')} />
-      <textarea required placeholder="Describe your place" value={form.description} onChange={set('description')} />
+      <div>
+        <input required placeholder="Title" value={form.title} onChange={set('title')} />
+        {errors.title && <span className="error small">{errors.title}</span>}
+      </div>
+      <div>
+        <textarea required placeholder="Describe your place" value={form.description} onChange={set('description')} />
+        {errors.description && <span className="error small">{errors.description}</span>}
+      </div>
       <div className="row">
         <select value={form.type} onChange={set('type')}>
           {STAY_TYPES.map((t) => <option key={t}>{t}</option>)}
         </select>
-        <input required type="number" min="0" placeholder="Price per night (₹)" value={form.pricePerNight} onChange={set('pricePerNight')} />
+        <div className="grow">
+          <input required type="number" min="0" placeholder="Price per night (₹)" value={form.pricePerNight} onChange={set('pricePerNight')} />
+          {errors.pricePerNight && <span className="error small">{errors.pricePerNight}</span>}
+        </div>
       </div>
       <div className="row">
         <input required placeholder="City" value={form.city} onChange={set('city')} />
@@ -90,9 +134,12 @@ export default function ListingForm() {
         </label>
       </div>
       <input placeholder="Amenities (comma separated: WiFi, AC, Parking)" value={form.amenities} onChange={set('amenities')} />
-      <input placeholder="Image URL (optional)" value={form.imageUrl} onChange={set('imageUrl')} />
+      <div>
+        <input placeholder="Image URL (optional)" value={form.imageUrl} onChange={set('imageUrl')} />
+        {errors.imageUrl && <span className="error small">{errors.imageUrl}</span>}
+      </div>
       {error && <p className="error">{error}</p>}
-      <button className="btn">{isEdit ? 'Save changes' : 'Publish listing'}</button>
+      <button className="btn" disabled={isFormInvalid}>{isEdit ? 'Save changes' : 'Publish listing'}</button>
     </form>
   );
 }
