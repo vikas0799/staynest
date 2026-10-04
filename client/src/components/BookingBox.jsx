@@ -15,7 +15,26 @@ export default function BookingBox({ listing }) {
   const total = nights * listing.pricePerNight;
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
-  // TODO: the date inputs allow past dates - set a `min` attribute (see issue tracker).
+  const toISODate = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const today = toISODate(new Date());
+
+  const getMinCheckOut = () => {
+    if (!form.checkIn) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return toISODate(tomorrow);
+    }
+    const [y, m, d] = form.checkIn.split('-').map(Number);
+    const next = new Date(y, m - 1, d + 1);
+    return toISODate(next);
+  };
+
   const book = async (e) => {
     e.preventDefault();
     if (!user) return navigate('/login', { state: { from: `/stays/${listing._id}` } });
@@ -44,11 +63,30 @@ export default function BookingBox({ listing }) {
       <div className="row">
         <label className="grow">
           Check-in
-          <input type="date" required value={form.checkIn} onChange={set('checkIn')} />
+          <input
+            type="date"
+            required
+            min={today}
+            value={form.checkIn}
+            onChange={(e) => {
+              const val = e.target.value;
+              setForm((prev) => ({
+                ...prev,
+                checkIn: val,
+                checkOut: prev.checkOut && prev.checkOut <= val ? '' : prev.checkOut,
+              }));
+            }}
+          />
         </label>
         <label className="grow">
           Check-out
-          <input type="date" required value={form.checkOut} onChange={set('checkOut')} />
+          <input
+            type="date"
+            required
+            min={getMinCheckOut()}
+            value={form.checkOut}
+            onChange={set('checkOut')}
+          />
         </label>
       </div>
       <label>
