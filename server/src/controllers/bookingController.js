@@ -1,6 +1,9 @@
 import Booking from '../models/Booking.js';
 import Listing from '../models/Listing.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { sendEmail } from '../utils/mailer.js';
+import { getBookingRequestHtml } from '../templates/bookingRequest.js';
+import { getBookingStatusHtml } from '../templates/bookingStatus.js';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -8,7 +11,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 export const createBooking = asyncHandler(async (req, res) => {
   const { listingId, checkIn, checkOut, guests } = req.body;
 
-  const listing = await Listing.findById(listingId);
+  const listing = await Listing.findById(listingId).populate('host');
   if (!listing || !listing.isActive) {
     res.status(404);
     throw new Error('Listing not available');
@@ -48,6 +51,13 @@ export const createBooking = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json(booking);
+
+  // Send email to host
+  sendEmail({
+    to: listing.host.email,
+    subject: 'New Booking Request',
+    html: getBookingRequestHtml(req.user.name, listing.title, start, end),
+  }).catch((err) => console.error('Email failed:', err));
 });
 
 // GET /api/bookings/mine (guest trips)
@@ -91,7 +101,9 @@ export const cancelBooking = asyncHandler(async (req, res) => {
 // PATCH /api/bookings/:id/status (host of the listing)
 export const updateBookingStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
-  const booking = await Booking.findById(req.params.id).populate('listing', 'host');
+  const booking = await Booking.findById(req.params.id)
+    .populate('listing', 'host title')
+    .populate('guest', 'name email');
   if (!booking) {
     res.status(404);
     throw new Error('Booking not found');
@@ -107,4 +119,11 @@ export const updateBookingStatus = asyncHandler(async (req, res) => {
   booking.status = status;
   await booking.save();
   res.json(booking);
+
+  // Send email to guest
+  sendEmail({
+    to: booking.guest.email,
+    subject: `Booking ${status}`,
+    html: getBookingStatusHtml(booking.guest.name, booking.listing.title, status),
+  }).catch((err) => console.error('Email failed:', err));
 });
