@@ -11,6 +11,8 @@ export default function BookingBox({ listing }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const today = new Date().toLocaleDateString('en-CA');
+  const minCheckOut = form.checkIn ? new Date(new Date(form.checkIn).getTime() + 86400000).toISOString().split('T')[0] : '';
   const nights = nightsBetween(form.checkIn, form.checkOut);
   const total = nights * listing.pricePerNight;
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -44,11 +46,11 @@ export default function BookingBox({ listing }) {
       <div className="row">
         <label className="grow">
           Check-in
-          <input type="date" required value={form.checkIn} onChange={set('checkIn')} />
+          <input type="date" required value={form.checkIn} onChange={set('checkIn')} min={today} />
         </label>
         <label className="grow">
           Check-out
-          <input type="date" required value={form.checkOut} onChange={set('checkOut')} />
+          <input type="date" required value={form.checkOut} onChange={set('checkOut')} min={minCheckOut} />
         </label>
       </div>
       <label>
