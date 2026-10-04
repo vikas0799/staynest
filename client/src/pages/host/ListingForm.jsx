@@ -65,16 +65,38 @@ export default function ListingForm() {
     }
   };
 
+  const isTitleTooShortOrLong = form.title.length > 0 && (form.title.length < 10 || form.title.length > 100);
+  const isDescTooShort = form.description.length > 0 && form.description.length < 30;
+  const isPriceZeroOrEmpty = form.pricePerNight === '' || Number(form.pricePerNight) === 0;
+  let isImageNotValidUrl = false;
+  if (form.imageUrl.length > 0) {
+    try {
+      new URL(form.imageUrl);
+    } catch (e) {
+      isImageNotValidUrl = true;
+    }
+  }
+
+  const isFormSubmitDisabled = isTitleTooShortOrLong || isDescTooShort || isPriceZeroOrEmpty || isImageNotValidUrl || !form.title || !form.description;
+
   return (
     <form className="card form wide" onSubmit={submit}>
       <h1>{isEdit ? 'Edit listing' : 'Create a new listing'}</h1>
+      
       <input required placeholder="Title" value={form.title} onChange={set('title')} />
+      {isTitleTooShortOrLong && <p className="error small" style={{ margin: '-8px 0 0' }}>Title must be between 10 and 100 characters.</p>}
+      
       <textarea required placeholder="Describe your place" value={form.description} onChange={set('description')} />
+      {isDescTooShort && <p className="error small" style={{ margin: '-8px 0 0' }}>Description must be at least 30 characters.</p>}
+      
       <div className="row">
         <select value={form.type} onChange={set('type')}>
           {STAY_TYPES.map((t) => <option key={t}>{t}</option>)}
         </select>
-        <input required type="number" min="0" placeholder="Price per night (₹)" value={form.pricePerNight} onChange={set('pricePerNight')} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <input required type="number" min="0" placeholder="Price per night (₹)" value={form.pricePerNight} onChange={set('pricePerNight')} />
+          {isPriceZeroOrEmpty && <p className="error small" style={{ margin: '4px 0 0' }}>Price cannot be 0 or empty.</p>}
+        </div>
       </div>
       <div className="row">
         <input required placeholder="City" value={form.city} onChange={set('city')} />
@@ -90,9 +112,12 @@ export default function ListingForm() {
         </label>
       </div>
       <input placeholder="Amenities (comma separated: WiFi, AC, Parking)" value={form.amenities} onChange={set('amenities')} />
+      
       <input placeholder="Image URL (optional)" value={form.imageUrl} onChange={set('imageUrl')} />
+      {isImageNotValidUrl && <p className="error small" style={{ margin: '-8px 0 0' }}>Please enter a valid URL.</p>}
+      
       {error && <p className="error">{error}</p>}
-      <button className="btn">{isEdit ? 'Save changes' : 'Publish listing'}</button>
+      <button className="btn" disabled={isFormSubmitDisabled}>{isEdit ? 'Save changes' : 'Publish listing'}</button>
     </form>
   );
 }
