@@ -9,6 +9,8 @@ export default function Reviews({ listingId, onReviewAdded }) {
   const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({ rating: 5, comment: '' });
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ rating: 5, comment: '' });
 
   const load = () => api.get(`/listings/${listingId}/reviews`).then(({ data }) => setReviews(data));
   useEffect(() => {
@@ -28,22 +30,89 @@ export default function Reviews({ listingId, onReviewAdded }) {
     }
   };
 
+  const handleEdit = (r) => {
+    setEditingId(r._id);
+    setEditForm({ rating: r.rating, comment: r.comment });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setError('');
+  };
+
+  const saveEdit = async (reviewId) => {
+    setError('');
+    try {
+      await api.put(`/listings/${listingId}/reviews/${reviewId}`, editForm);
+      setEditingId(null);
+      load();
+      onReviewAdded?.();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const handleDelete = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) return;
+    setError('');
+    try {
+      await api.delete(`/listings/${listingId}/reviews/${reviewId}`);
+      load();
+      onReviewAdded?.();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const userHasReviewed = user && reviews.some((r) => r.user?._id === user._id);
+
   return (
     <section className="reviews">
       <h2>Reviews ({reviews.length})</h2>
       {reviews.length === 0 && <p className="muted">No reviews yet.</p>}
-      {reviews.map((r) => (
-        <div key={r._id} className="review">
-          <div className="row-between">
-            <strong>{r.user?.name}</strong>
-            <span className="muted small">{formatDate(r.createdAt)}</span>
+      {reviews.map((r) => {
+        const isOwner = user && r.user?._id === user._id;
+        const isEditing = editingId === r._id;
+        
+        return (
+          <div key={r._id} className="review">
+            <div className="row-between">
+              <strong>{r.user?.name}</strong>
+              <span className="muted small">{formatDate(r.createdAt)}</span>
+            </div>
+            
+            {isEditing ? (
+              <div className="card form" style={{ marginTop: '12px' }}>
+                <StarRating value={editForm.rating} onChange={(rating) => setEditForm({ ...editForm, rating })} />
+                <textarea
+                  required
+                  value={editForm.comment}
+                  onChange={(e) => setEditForm({ ...editForm, comment: e.target.value })}
+                />
+                <div className="row" style={{ marginTop: '8px' }}>
+                  <button className="btn" onClick={() => saveEdit(r._id)}>Save</button>
+                  <button className="btn btn-outline" onClick={cancelEdit}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="row-between">
+                  <div className="stars-static">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
+                  {isOwner && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn small" onClick={() => handleEdit(r)}>Edit</button>
+                      <button className="btn btn-outline small" onClick={() => handleDelete(r._id)}>Delete</button>
+                    </div>
+                  )}
+                </div>
+                <p>{r.comment}</p>
+              </>
+            )}
           </div>
-          <div className="stars-static">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
-          <p>{r.comment}</p>
-        </div>
-      ))}
+        );
+      })}
 
-      {user && (
+      {user && !userHasReviewed && (
         <form className="card form" onSubmit={submit}>
           <h3>Write a review</h3>
           <StarRating value={form.rating} onChange={(rating) => setForm({ ...form, rating })} />
